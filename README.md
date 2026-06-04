@@ -1,23 +1,32 @@
-# Health Check Application
+# To-Do List Application
 
-A comprehensive Python-based health check application that monitors system resources and application health. Includes both a REST API and CLI interface.
+A comprehensive to-do list application with local storage functionality, featuring both a REST API backend and an interactive web interface.
 
 ## Features
 
-- 🔍 **System Monitoring**: CPU, Memory, Disk, Network, and Process count checks
-- 🌐 **REST API**: Full HTTP API for health checks with multiple endpoints
-- 💻 **CLI Tool**: Command-line interface for quick health checks
-- 📊 **Detailed Metrics**: Rich information including thresholds, current values, and trends
-- 🎯 **Configurable Thresholds**: Adjust alert thresholds dynamically
-- 🚀 **Kubernetes Ready**: Includes liveness and readiness probes
-- 🔧 **Extensible**: Easy to add custom health checks
+- ✅ **Create, Read, Update, Delete (CRUD)** - Full task management
+- 💾 **Local Storage** - All tasks saved to JSON file (persistent storage)
+- 🎯 **Priority Levels** - Low, Medium, High priority classification
+- 📅 **Due Dates** - Set and track task deadlines
+- 🔍 **Filtering** - Filter tasks by status (pending/completed) or priority
+- 📊 **Statistics** - Track completion rates and task metrics
+- 🌐 **REST API** - Full-featured API for programmatic access
+- 💻 **Web Interface** - Beautiful, responsive UI for easy task management
+- 🖥️ **CLI Tool** - Command-line interface for power users
+- 📤 **Import/Export** - Backup and restore tasks as JSON
+- 🎨 **Modern Design** - Clean, intuitive, and accessible interface
 
 ## Installation
 
+### Prerequisites
+- Python 3.7+
+- pip (Python package manager)
+
+### Setup
+
 ```bash
-# Clone the repository
-git clone https://github.com/vaithinarayana/healthcheckapp.git
-cd healthcheckapp
+# Clone or navigate to the project directory
+cd todo-list-app
 
 # Install dependencies
 pip install -r requirements.txt
@@ -25,303 +34,345 @@ pip install -r requirements.txt
 
 ## Usage
 
-### REST API
+### Running the Web Application
 
 ```bash
-# Start the Flask server
 python app.py
 ```
 
-The application will be available at `http://localhost:5000`
-
-#### Available Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/` | GET | API documentation and available endpoints |
-| `/health` | GET | Full health check with all metrics |
-| `/health/live` | GET | Liveness probe (container orchestration) |
-| `/health/ready` | GET | Readiness probe (container orchestration) |
-| `/health/summary` | GET | Brief health summary |
-| `/health/cpu` | GET | CPU usage check |
-| `/health/memory` | GET | Memory usage check |
-| `/health/disk` | GET | Disk usage check (optional `?path` parameter) |
-| `/health/network` | GET | Network connectivity check |
-| `/health/config` | GET/PUT | Get or update thresholds |
-
-#### Example API Calls
-
-```bash
-# Full health check
-curl http://localhost:5000/health
-
-# CPU check
-curl http://localhost:5000/health/cpu
-
-# Memory check
-curl http://localhost:5000/health/memory
-
-# Disk check (specific path)
-curl http://localhost:5000/health/disk?path=/home
-
-# Get current thresholds
-curl http://localhost:5000/health/config
-
-# Update thresholds
-curl -X PUT http://localhost:5000/health/config \
-  -H "Content-Type: application/json" \
-  -d '{"cpu_percent": 75, "memory_percent": 80}'
-
-# Liveness probe (for Kubernetes)
-curl http://localhost:5000/health/live
-
-# Readiness probe (for Kubernetes)
-curl http://localhost:5000/health/ready
+Then open your browser and navigate to:
+```
+http://localhost:5000
 ```
 
-### CLI Tool
+### Using the CLI Tool
 
 ```bash
 # Show help
-python health_check_cli.py --help
+python todo_cli.py --help
 
-# Run full health check
-python health_check_cli.py check
+# Add a new task
+python todo_cli.py add "Buy groceries" --priority high --due 2024-12-25
 
-# Show summary
-python health_check_cli.py summary
+# List all tasks
+python todo_cli.py list
 
-# Check CPU
-python health_check_cli.py cpu
+# List pending tasks
+python todo_cli.py list --filter pending
 
-# Check memory
-python health_check_cli.py memory
+# View a specific task
+python todo_cli.py view <task-id>
 
-# Check disk
-python health_check_cli.py disk --path /home
+# Mark task as complete
+python todo_cli.py done <task-id>
 
-# Check network
-python health_check_cli.py network
+# Edit a task
+python todo_cli.py edit <task-id> --title "New title" --priority medium
 
-# Output as JSON
-python health_check_cli.py check --format json
+# Delete a task
+python todo_cli.py delete <task-id>
 
-# Custom service name
-python health_check_cli.py --service "MyService" check
+# Show statistics
+python todo_cli.py stats
+
+# Export tasks
+python todo_cli.py export --file my_tasks.json
+
+# Import tasks
+python todo_cli.py import my_tasks.json
+
+# Clear all tasks
+python todo_cli.py clear
 ```
 
-## Response Examples
+## REST API Endpoints
 
-### Full Health Check
+### Todos Management
 
-```json
-{
-  "service": "MyApplication",
-  "timestamp": "2024-01-15T10:30:45.123456",
-  "overall_status": "healthy",
-  "checks": {
-    "cpu": {
-      "name": "CPU",
-      "status": "healthy",
-      "value": 45.23,
-      "unit": "%",
-      "threshold": 80,
-      "message": "CPU usage is 45.23%"
-    },
-    "memory": {
-      "name": "Memory",
-      "status": "healthy",
-      "value": 62.15,
-      "unit": "%",
-      "threshold": 85,
-      "total_gb": 16.0,
-      "available_gb": 6.04,
-      "message": "Memory usage is 62.15%"
-    },
-    "disk": {
-      "name": "Disk",
-      "status": "healthy",
-      "value": 55.8,
-      "unit": "%",
-      "threshold": 90,
-      "total_gb": 500.0,
-      "used_gb": 279.0,
-      "free_gb": 221.0,
-      "message": "Disk usage is 55.8%"
-    },
-    "processes": {
-      "name": "Process Count",
-      "status": "healthy",
-      "value": 156,
-      "message": "Total running processes: 156"
-    },
-    "network": {
-      "name": "Network",
-      "status": "healthy",
-      "message": "Network connectivity is available"
-    }
-  },
-  "response_time_ms": 125.45
-}
-```
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/todos` | Get all todos (with optional filtering) |
+| POST | `/api/todos` | Create a new todo |
+| GET | `/api/todos/<id>` | Get a specific todo |
+| PUT | `/api/todos/<id>` | Update a todo |
+| PUT | `/api/todos/<id>/toggle` | Toggle todo completion |
+| DELETE | `/api/todos/<id>` | Delete a todo |
+| POST | `/api/todos/bulk/delete` | Delete multiple todos |
 
-### Summary Response
+### Statistics & Utilities
 
-```json
-{
-  "service": "MyApplication",
-  "overall_status": "healthy",
-  "healthy_checks": 5,
-  "total_checks": 5,
-  "timestamp": "2024-01-15T10:30:45.123456"
-}
-```
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/statistics` | Get todo statistics |
+| POST | `/api/clear` | Clear all todos |
+| GET | `/api/export` | Export todos to JSON |
+| POST | `/api/import` | Import todos from JSON |
 
-## Status Codes
+### Web Interface
 
-- **200 (OK)**: All checks passed, system is healthy
-- **503 (Service Unavailable)**: One or more checks failed, system is degraded or unhealthy
-- **500 (Internal Server Error)**: Error occurred during health check
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/` | Main web application |
 
-## Health Status Levels
+## API Examples
 
-- **healthy**: All metrics are within normal thresholds
-- **degraded**: Some metrics are approaching or have exceeded thresholds
-- **unhealthy**: System has critical issues
-
-## Configuration
-
-### Adjusting Thresholds
-
-Default thresholds can be modified via the API:
+### Create a Todo
 
 ```bash
-curl -X PUT http://localhost:5000/health/config \
+curl -X POST http://localhost:5000/api/todos \
   -H "Content-Type: application/json" \
   -d '{
-    "cpu_percent": 70,
-    "memory_percent": 80,
-    "disk_percent": 85
+    "title": "Buy milk",
+    "description": "Get 2L milk from grocery store",
+    "priority": "high",
+    "due_date": "2024-12-25"
   }'
 ```
 
-## Docker Support
+### Get All Todos
 
-```dockerfile
-FROM python:3.11-slim
-
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY . .
-
-EXPOSE 5000
-CMD ["python", "app.py"]
-```
-
-Build and run:
 ```bash
-docker build -t health-check-app .
-docker run -p 5000:5000 health-check-app
+curl http://localhost:5000/api/todos
 ```
 
-## Kubernetes Integration
+### Filter Todos
 
-Use the health check endpoints in your Kubernetes deployment:
+```bash
+# Get pending todos
+curl "http://localhost:5000/api/todos?filter=pending"
 
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: health-check-app
-spec:
-  replicas: 1
-  template:
-    spec:
-      containers:
-      - name: app
-        image: health-check-app:latest
-        ports:
-        - containerPort: 5000
-        livenessProbe:
-          httpGet:
-            path: /health/live
-            port: 5000
-          initialDelaySeconds: 10
-          periodSeconds: 30
-        readinessProbe:
-          httpGet:
-            path: /health/ready
-            port: 5000
-          initialDelaySeconds: 5
-          periodSeconds: 10
+# Get high priority todos
+curl "http://localhost:5000/api/todos?filter=high"
+
+# Get completed todos
+curl "http://localhost:5000/api/todos?filter=completed"
+```
+
+### Toggle Todo Completion
+
+```bash
+curl -X PUT http://localhost:5000/api/todos/<todo-id>/toggle
+```
+
+### Update a Todo
+
+```bash
+curl -X PUT http://localhost:5000/api/todos/<todo-id> \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Updated title",
+    "priority": "low",
+    "completed": true
+  }'
+```
+
+### Delete a Todo
+
+```bash
+curl -X DELETE http://localhost:5000/api/todos/<todo-id>
+```
+
+### Get Statistics
+
+```bash
+curl http://localhost:5000/api/statistics
+```
+
+### Export Todos
+
+```bash
+curl http://localhost:5000/api/export
+```
+
+### Bulk Delete
+
+```bash
+curl -X POST http://localhost:5000/api/todos/bulk/delete \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ids": ["id1", "id2", "id3"]
+  }'
+```
+
+## Response Format
+
+All API responses follow this format:
+
+### Success Response
+
+```json
+{
+  "success": true,
+  "data": { ... },
+  "message": "Operation successful",
+  "count": 10
+}
+```
+
+### Error Response
+
+```json
+{
+  "success": false,
+  "error": "Error message here"
+}
+```
+
+## Todo Item Structure
+
+```json
+{
+  "id": "uuid-string",
+  "title": "Task title",
+  "description": "Detailed description",
+  "priority": "high|medium|low",
+  "due_date": "YYYY-MM-DD",
+  "completed": false,
+  "created_at": "2024-01-15T10:30:45.123456",
+  "updated_at": "2024-01-15T10:30:45.123456"
+}
+```
+
+## Statistics Response
+
+```json
+{
+  "total": 15,
+  "completed": 8,
+  "pending": 7,
+  "completion_percentage": 53.33,
+  "by_priority": {
+    "high": 3,
+    "medium": 7,
+    "low": 5
+  }
+}
+```
+
+## Local Storage
+
+Todos are automatically saved to `todos.json` file in the application directory. This file contains all your tasks and persists across application restarts.
+
+### Storage File Format
+
+```json
+{
+  "todos": [
+    {
+      "id": "...",
+      "title": "...",
+      "description": "...",
+      "priority": "...",
+      "due_date": "...",
+      "completed": false,
+      "created_at": "...",
+      "updated_at": "..."
+    }
+  ],
+  "last_updated": "2024-01-15T10:30:45.123456"
+}
 ```
 
 ## Project Structure
 
 ```
-healthcheckapp/
-├── app.py                   # Flask API application
-├── health_check.py          # Core health checking logic
-├── health_check_cli.py      # CLI interface
+todo-list-app/
+├── app.py                   # Flask REST API
+├── todo_list.py             # Core todo logic
+├── todo_cli.py              # CLI interface
 ├── requirements.txt         # Python dependencies
-├── Dockerfile              # Docker image definition
-├── docker-compose.yml      # Docker compose configuration
+├── todos.json              # Local storage file (auto-created)
+├── templates/
+│   └── index.html          # Web interface
+├── static/
+│   ├── style.css           # Styling
+│   └── app.js              # Frontend logic
 └── README.md               # This file
 ```
 
-## Features Breakdown
+## Web Interface Features
 
-### Core Health Checks
+### Add Tasks
+- Enter task title, description, priority, and due date
+- Quick add with Enter key
 
-1. **CPU Monitoring**: Real-time CPU usage percentage
-2. **Memory Monitoring**: RAM usage with breakdown of total/available
-3. **Disk Monitoring**: Storage usage for any path
-4. **Network Monitoring**: Internet connectivity verification
-5. **Process Monitoring**: Count of running processes
+### Filter & Sort
+- Filter by status (All, Pending, Completed)
+- Filter by priority (High, Medium, Low)
+- Sort by creation date, priority, or due date
 
-### API Features
+### Manage Tasks
+- Check/uncheck to mark complete
+- Edit tasks inline
+- Delete individual tasks
+- Clear all tasks at once
 
-- RESTful endpoints for each health check
-- Dynamic threshold configuration
-- Kubernetes-compatible liveness/readiness probes
-- JSON responses with detailed metrics
-- Appropriate HTTP status codes
+### Statistics
+- Real-time task count
+- Completion percentage
+- Priority breakdown
 
-### CLI Features
+### Import/Export
+- Export tasks to JSON backup
+- Import tasks from JSON file
 
-- Multiple output formats (table, JSON)
-- Individual check commands
-- Exit codes for script integration
-- Custom service naming
+## Performance
 
-## Custom Health Checks
+- **Fast Operations**: All operations are optimized for speed
+- **Scalable Storage**: Handles thousands of todos efficiently
+- **Responsive UI**: Real-time updates without page reloads
+- **Efficient Filtering**: Quick task filtering and sorting
 
-You can extend the health checker with custom checks:
+## Data Persistence
+
+All todos are automatically saved to the `todos.json` file:
+- Changes are saved immediately after each operation
+- Data persists across application restarts
+- Backup/restore functionality through import/export
+
+## Browser Compatibility
+
+- Chrome/Chromium (latest)
+- Firefox (latest)
+- Safari (latest)
+- Edge (latest)
+- Mobile browsers
+
+## Keyboard Shortcuts
+
+- **Enter** in title field - Add new task
+- **Escape** - Close modals/dialogs
+
+## Troubleshooting
+
+### Port Already in Use
+
+If port 5000 is already in use, modify `app.py`:
 
 ```python
-from health_check import HealthChecker
-
-checker = HealthChecker()
-
-def custom_check():
-    # Your check logic here
-    return {
-        "status": "healthy",
-        "message": "Custom check passed"
-    }
-
-result = checker.check_custom(custom_check, "CustomCheck")
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=5001)  # Change port
 ```
 
-## Dependencies
+### Import/Export Issues
 
-- **flask**: Web framework for REST API
-- **requests**: HTTP library
-- **psutil**: System and process utilities
-- **pydantic**: Data validation
-- **tabulate**: Pretty-print tabular data
+Ensure the JSON file is in the correct format:
+
+```json
+{
+  "todos": [ ... ]
+}
+```
+
+## Future Enhancements
+
+- [ ] Due date reminders
+- [ ] Categories/Tags
+- [ ] Recurring tasks
+- [ ] Collaboration features
+- [ ] Dark mode
+- [ ] Mobile app
+- [ ] Cloud sync
 
 ## License
 
@@ -329,8 +380,8 @@ MIT License
 
 ## Contributing
 
-Contributions are welcome! Feel free to open issues and pull requests.
+Contributions are welcome! Feel free to open issues or submit pull requests.
 
 ## Support
 
-For issues and questions, please open a GitHub issue in the repository.
+For issues and feature requests, please open a GitHub issue.

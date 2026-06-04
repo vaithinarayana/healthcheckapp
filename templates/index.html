@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do List Application</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1>📝 To-Do List</h1>
+                <p class="subtitle">Manage your tasks efficiently</p>
+            </div>
+            <div class="stats-widget">
+                <div class="stat-item">
+                    <span class="stat-label">Total</span>
+                    <span class="stat-value" id="statTotal">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Completed</span>
+                    <span class="stat-value" id="statCompleted">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Pending</span>
+                    <span class="stat-value" id="statPending">0</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Add New Todo Section -->
+            <section class="add-todo-section">
+                <h2>Add New Task</h2>
+                <div class="add-todo-form">
+                    <div class="form-group">
+                        <input 
+                            type="text" 
+                            id="todoTitle" 
+                            placeholder="What needs to be done?"
+                            class="input-title"
+                        >
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <textarea 
+                                id="todoDescription" 
+                                placeholder="Add a description (optional)"
+                                class="input-description"
+                                rows="2"
+                            ></textarea>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="todoPriority">Priority:</label>
+                            <select id="todoPriority" class="input-priority">
+                                <option value="low">🟢 Low</option>
+                                <option value="medium" selected>🟡 Medium</option>
+                                <option value="high">🔴 High</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="todoDueDate">Due Date:</label>
+                            <input 
+                                type="date" 
+                                id="todoDueDate" 
+                                class="input-date"
+                            >
+                        </div>
+                        <button id="addTodoBtn" class="btn btn-primary">Add Task</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Filters and Controls -->
+            <section class="controls-section">
+                <div class="filter-buttons">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="pending">Pending</button>
+                    <button class="filter-btn" data-filter="completed">Completed</button>
+                    <button class="filter-btn" data-filter="high">🔴 High</button>
+                    <button class="filter-btn" data-filter="medium">🟡 Medium</button>
+                    <button class="filter-btn" data-filter="low">🟢 Low</button>
+                </div>
+                <div class="action-buttons">
+                    <button id="exportBtn" class="btn btn-secondary">📥 Export</button>
+                    <button id="importBtn" class="btn btn-secondary">📤 Import</button>
+                    <button id="clearBtn" class="btn btn-danger">🗑️ Clear All</button>
+                </div>
+            </section>
+
+            <!-- Todo Items List -->
+            <section class="todos-section">
+                <div class="todos-container" id="todosContainer">
+                    <div class="empty-state">
+                        <p>✨ No tasks yet. Add one to get started!</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

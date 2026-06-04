@@ -1,196 +1,311 @@
 """
-Flask API for Health Check Application
-Provides REST endpoints to monitor application health
+Flask API for To-Do List Application
+Provides REST endpoints for managing to-do items with local storage
 """
 
-from flask import Flask, jsonify, request
-from health_check import HealthChecker, HealthStatus
+from flask import Flask, jsonify, request, render_template
+from flask_cors import CORS
+from todo_list import TodoList, TodoItem
 import logging
+from datetime import datetime
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Initialize Flask app
-app = Flask(__name__)
+app = Flask(__name__, template_folder='templates', static_folder='static')
+CORS(app)
 app.json.sort_keys = False
 
-# Initialize health checker
-health_checker = HealthChecker(service_name="MyApplication")
-
-
-@app.route('/health', methods=['GET'])
-def health_check():
-    """
-    Main health check endpoint
-    Returns detailed health information for all system components
-    """
-    try:
-        results = health_checker.run_all_checks()
-        status_code = 200 if results["overall_status"] == HealthStatus.HEALTHY else 503
-        return jsonify(results), status_code
-    except Exception as e:
-        logger.error(f"Health check failed: {str(e)}")
-        return jsonify({
-            "error": "Health check failed",
-            "message": str(e)
-        }), 500
-
-
-@app.route('/health/live', methods=['GET'])
-def liveness_probe():
-    """
-    Liveness probe endpoint
-    Used by container orchestration systems to determine if the app is running
-    Returns 200 if the application is alive
-    """
-    return jsonify({
-        "status": "alive",
-        "message": "Application is running"
-    }), 200
-
-
-@app.route('/health/ready', methods=['GET'])
-def readiness_probe():
-    """
-    Readiness probe endpoint
-    Used by container orchestration systems to determine if the app is ready to receive traffic
-    Performs quick health checks
-    """
-    try:
-        summary = health_checker.get_summary()
-        if summary["overall_status"] != HealthStatus.HEALTHY:
-            return jsonify({
-                "status": "not_ready",
-                "message": "Application is not ready",
-                "summary": summary
-            }), 503
-        
-        return jsonify({
-            "status": "ready",
-            "message": "Application is ready to receive traffic"
-        }), 200
-    except Exception as e:
-        logger.error(f"Readiness check failed: {str(e)}")
-        return jsonify({
-            "status": "not_ready",
-            "message": str(e)
-        }), 503
-
-
-@app.route('/health/summary', methods=['GET'])
-def health_summary():
-    """
-    Health summary endpoint
-    Returns a brief summary of the health status
-    """
-    try:
-        summary = health_checker.get_summary()
-        return jsonify(summary), 200
-    except Exception as e:
-        logger.error(f"Summary check failed: {str(e)}")
-        return jsonify({
-            "error": "Summary check failed",
-            "message": str(e)
-        }), 500
-
-
-@app.route('/health/cpu', methods=['GET'])
-def check_cpu():
-    """CPU health check endpoint"""
-    try:
-        result = health_checker.check_cpu()
-        status_code = 200 if result["status"] == HealthStatus.HEALTHY else 503
-        return jsonify(result), status_code
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route('/health/memory', methods=['GET'])
-def check_memory():
-    """Memory health check endpoint"""
-    try:
-        result = health_checker.check_memory()
-        status_code = 200 if result["status"] == HealthStatus.HEALTHY else 503
-        return jsonify(result), status_code
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route('/health/disk', methods=['GET'])
-def check_disk():
-    """Disk health check endpoint"""
-    try:
-        path = request.args.get('path', '/')
-        result = health_checker.check_disk(path)
-        status_code = 200 if result["status"] == HealthStatus.HEALTHY else 503
-        return jsonify(result), status_code
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route('/health/network', methods=['GET'])
-def check_network():
-    """Network health check endpoint"""
-    try:
-        result = health_checker.check_network()
-        status_code = 200 if result["status"] == HealthStatus.HEALTHY else 503
-        return jsonify(result), status_code
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-@app.route('/health/config', methods=['GET', 'PUT'])
-def health_config():
-    """
-    Get or update health check configuration
-    GET: Returns current thresholds
-    PUT: Updates thresholds
-    """
-    if request.method == 'GET':
-        return jsonify({
-            "thresholds": health_checker.threshold_values
-        }), 200
-    
-    elif request.method == 'PUT':
-        try:
-            data = request.get_json()
-            if data:
-                health_checker.threshold_values.update(data)
-            return jsonify({
-                "message": "Configuration updated",
-                "thresholds": health_checker.threshold_values
-            }), 200
-        except Exception as e:
-            return jsonify({"error": str(e)}), 400
+# Initialize to-do list manager
+todo_manager = TodoList(storage_file="todos.json")
 
 
 @app.route('/', methods=['GET'])
 def index():
-    """Root endpoint with API documentation"""
-    return jsonify({
-        "service": "Health Check Application",
-        "endpoints": {
-            "GET /health": "Full health check with all metrics",
-            "GET /health/live": "Liveness probe",
-            "GET /health/ready": "Readiness probe",
-            "GET /health/summary": "Brief health summary",
-            "GET /health/cpu": "CPU usage check",
-            "GET /health/memory": "Memory usage check",
-            "GET /health/disk": "Disk usage check (optional ?path parameter)",
-            "GET /health/network": "Network connectivity check",
-            "GET /health/config": "Get current thresholds",
-            "PUT /health/config": "Update thresholds"
-        }
-    }), 200
+    """Serve the main HTML page"""
+    return render_template('index.html')
+
+
+@app.route('/api/todos', methods=['GET'])
+def get_todos():
+    """Get all to-do items with optional filtering"""
+    try:
+        filter_by = request.args.get('filter', 'all')
+        sort_by = request.args.get('sort', 'created')
+        
+        todos = todo_manager.get_all_todos(filter_by=filter_by)
+        
+        # Sort options
+        if sort_by == 'priority':
+            priority_order = {'high': 0, 'medium': 1, 'low': 2}
+            todos.sort(key=lambda x: priority_order.get(x.priority, 3))
+        elif sort_by == 'due_date':
+            todos.sort(key=lambda x: x.due_date or '9999-12-31')
+        
+        return jsonify({
+            "success": True,
+            "data": [todo.to_dict() for todo in todos],
+            "count": len(todos)
+        }), 200
+    except Exception as e:
+        logger.error(f"Error fetching todos: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route('/api/todos', methods=['POST'])
+def create_todo():
+    """Create a new to-do item"""
+    try:
+        data = request.get_json()
+        
+        if not data or not data.get('title'):
+            return jsonify({
+                "success": False,
+                "error": "Title is required"
+            }), 400
+        
+        todo = todo_manager.add_todo(
+            title=data.get('title'),
+            description=data.get('description', ''),
+            due_date=data.get('due_date'),
+            priority=data.get('priority', 'medium')
+        )
+        
+        return jsonify({
+            "success": True,
+            "data": todo.to_dict(),
+            "message": "To-do item created successfully"
+        }), 201
+    except ValueError as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 400
+    except Exception as e:
+        logger.error(f"Error creating todo: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route('/api/todos/<todo_id>', methods=['GET'])
+def get_todo(todo_id):
+    """Get a specific to-do item"""
+    try:
+        todo = todo_manager.get_todo(todo_id)
+        if not todo:
+            return jsonify({
+                "success": False,
+                "error": "To-do item not found"
+            }), 404
+        
+        return jsonify({
+            "success": True,
+            "data": todo.to_dict()
+        }), 200
+    except Exception as e:
+        logger.error(f"Error fetching todo: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route('/api/todos/<todo_id>', methods=['PUT'])
+def update_todo(todo_id):
+    """Update a to-do item"""
+    try:
+        data = request.get_json()
+        todo = todo_manager.update_todo(todo_id, **data)
+        
+        if not todo:
+            return jsonify({
+                "success": False,
+                "error": "To-do item not found"
+            }), 404
+        
+        return jsonify({
+            "success": True,
+            "data": todo.to_dict(),
+            "message": "To-do item updated successfully"
+        }), 200
+    except Exception as e:
+        logger.error(f"Error updating todo: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route('/api/todos/<todo_id>/toggle', methods=['PUT'])
+def toggle_todo(todo_id):
+    """Toggle completion status of a to-do item"""
+    try:
+        todo = todo_manager.toggle_todo(todo_id)
+        
+        if not todo:
+            return jsonify({
+                "success": False,
+                "error": "To-do item not found"
+            }), 404
+        
+        return jsonify({
+            "success": True,
+            "data": todo.to_dict(),
+            "message": f"To-do item marked as {'completed' if todo.completed else 'pending'}"
+        }), 200
+    except Exception as e:
+        logger.error(f"Error toggling todo: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route('/api/todos/<todo_id>', methods=['DELETE'])
+def delete_todo(todo_id):
+    """Delete a to-do item"""
+    try:
+        success = todo_manager.delete_todo(todo_id)
+        
+        if not success:
+            return jsonify({
+                "success": False,
+                "error": "To-do item not found"
+            }), 404
+        
+        return jsonify({
+            "success": True,
+            "message": "To-do item deleted successfully"
+        }), 200
+    except Exception as e:
+        logger.error(f"Error deleting todo: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route('/api/todos/bulk/delete', methods=['POST'])
+def bulk_delete():
+    """Delete multiple to-do items"""
+    try:
+        data = request.get_json()
+        todo_ids = data.get('ids', [])
+        
+        deleted_count = 0
+        for todo_id in todo_ids:
+            if todo_manager.delete_todo(todo_id):
+                deleted_count += 1
+        
+        return jsonify({
+            "success": True,
+            "deleted": deleted_count,
+            "message": f"Deleted {deleted_count} to-do items"
+        }), 200
+    except Exception as e:
+        logger.error(f"Error bulk deleting: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route('/api/statistics', methods=['GET'])
+def get_statistics():
+    """Get statistics about to-do items"""
+    try:
+        stats = todo_manager.get_statistics()
+        return jsonify({
+            "success": True,
+            "data": stats
+        }), 200
+    except Exception as e:
+        logger.error(f"Error fetching statistics: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route('/api/export', methods=['GET'])
+def export_todos():
+    """Export all to-do items as JSON"""
+    try:
+        success = todo_manager.export_to_json("todos_export.json")
+        if success:
+            return jsonify({
+                "success": True,
+                "message": "To-do items exported successfully",
+                "file": "todos_export.json"
+            }), 200
+        return jsonify({
+            "success": False,
+            "error": "Export failed"
+        }), 500
+    except Exception as e:
+        logger.error(f"Error exporting todos: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route('/api/import', methods=['POST'])
+def import_todos():
+    """Import to-do items from JSON file"""
+    try:
+        data = request.get_json()
+        filename = data.get('filename', 'todos_import.json')
+        
+        success = todo_manager.import_from_json(filename)
+        if success:
+            return jsonify({
+                "success": True,
+                "message": "To-do items imported successfully",
+                "count": len(todo_manager.todos)
+            }), 200
+        return jsonify({
+            "success": False,
+            "error": "Import failed - file not found"
+        }), 404
+    except Exception as e:
+        logger.error(f"Error importing todos: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+@app.route('/api/clear', methods=['POST'])
+def clear_todos():
+    """Clear all to-do items"""
+    try:
+        todo_manager.clear_all()
+        return jsonify({
+            "success": True,
+            "message": "All to-do items cleared"
+        }), 200
+    except Exception as e:
+        logger.error(f"Error clearing todos: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
 
 
 @app.errorhandler(404)
 def not_found(error):
     """Handle 404 errors"""
     return jsonify({
-        "error": "Endpoint not found",
-        "message": "Please check the API documentation at GET /"
+        "success": False,
+        "error": "Endpoint not found"
     }), 404
 
 
@@ -199,8 +314,8 @@ def internal_error(error):
     """Handle 500 errors"""
     logger.error(f"Internal error: {str(error)}")
     return jsonify({
-        "error": "Internal server error",
-        "message": "An unexpected error occurred"
+        "success": False,
+        "error": "Internal server error"
     }), 500
 
 
